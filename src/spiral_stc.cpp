@@ -93,7 +93,8 @@ namespace full_coverage_path_planner
   std::list<gridNode_t> SpiralSTC::spiral(std::vector<std::vector<bool>> const &grid, std::list<gridNode_t> &init,
                                           std::vector<std::vector<bool>> &visited)
   {
-    int dx, dy, dx_prev, x2, y2, nRows = grid.size(), nCols = grid[0].size();
+    int nRows = grid.size();
+    int nCols = grid[0].size();
     // Spiral filling of the open space
     // Copy incoming list to 'end'
     std::list<gridNode_t> pathNodes(init);
@@ -106,6 +107,10 @@ namespace full_coverage_path_planner
     bool done = false;
     while (!done)
     {
+      // Initialize spiral direction towards y-axis
+      int dx = 0;
+      int dy = 1;
+      int dx_prev;
       if (it != pathNodes.begin())
       {
         // turn ccw
@@ -115,18 +120,13 @@ namespace full_coverage_path_planner
         dx = -dy;
         dy = dx_prev;
       }
-      else
-      {
-        // Initialize spiral direction towards y-axis
-        dx = 0;
-        dy = 1;
-      }
+      // This condition might change in the loop bellow
       done = true;
-
-      for (int i = 0; i < 4; ++i)
+      // loop over the four possible directions: up, right, down, left
+      for (size_t i = 0; i < 4; ++i)
       {
-        x2 = pathNodes.back().pos.x + dx;
-        y2 = pathNodes.back().pos.y + dy;
+        int x2 = pathNodes.back().pos.x + dx;
+        int y2 = pathNodes.back().pos.y + dy;
         if (x2 >= 0 && x2 < nCols && y2 >= 0 && y2 < nRows)
         {
           if (grid[y2][x2] == eNodeOpen && visited[y2][x2] == eNodeOpen)
@@ -143,6 +143,7 @@ namespace full_coverage_path_planner
             it = --(pathNodes.end());
             visited[y2][x2] = eNodeVisited; // Close node
             done = false;
+            // brake for loop
             break;
           }
         }
@@ -160,15 +161,14 @@ namespace full_coverage_path_planner
                                            int &multiple_pass_counter,
                                            int &visited_counter)
   {
-    int x, y;
     // Initial node is initially set as visited so it does not count
     multiple_pass_counter = 0;
     visited_counter = 0;
 
     std::vector<std::vector<bool>> visited;
     visited = grid; // Copy grid matrix
-    x = init.x;
-    y = init.y;
+    int x = init.x;
+    int y = init.y;
 
     Point_t new_point = {x, y};
     gridNode_t new_node =
@@ -191,9 +191,9 @@ namespace full_coverage_path_planner
     std::list<Point_t> goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
     // Add points to full path
     std::list<gridNode_t>::iterator it;
-    for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+    for (const auto pathNode : pathNodes)
     {
-      Point_t newPoint = {it->pos.x, it->pos.y};
+      Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
       visited_counter++;
       fullPath.push_back(newPoint);
     }
@@ -224,13 +224,13 @@ namespace full_coverage_path_planner
       }
 
       // Update visited grid
-      for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+      for (const auto pathNode : pathNodes)
       {
-        if (visited[it->pos.y][it->pos.x])
+        if (visited[pathNode.pos.y][pathNode.pos.x])
         {
           multiple_pass_counter++;
         }
-        visited[it->pos.y][it->pos.x] = eNodeVisited;
+        visited[pathNode.pos.y][pathNode.pos.x] = eNodeVisited;
       }
       if (pathNodes.size() > 0)
       {
@@ -253,9 +253,9 @@ namespace full_coverage_path_planner
 
       goals = map_2_goals(visited, eNodeOpen); // Retrieve remaining goalpoints
 
-      for (it = pathNodes.begin(); it != pathNodes.end(); ++it)
+      for (const auto pathNode : pathNodes)
       {
-        Point_t newPoint = {it->pos.x, it->pos.y};
+        Point_t newPoint = {pathNode.pos.x, pathNode.pos.y};
         visited_counter++;
         fullPath.push_back(newPoint);
       }
@@ -320,7 +320,7 @@ namespace full_coverage_path_planner
 
     clock_t end = clock();
     double elapsed_secs = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
-    std::cout << "elapsed time: " << elapsed_secs << "\n";
+    RCLCPP_INFO(rclcpp::get_logger("FullCoveragePathPlanner"), "Elapsed time: %f", elapsed_secs);
 
     return true;
   }
